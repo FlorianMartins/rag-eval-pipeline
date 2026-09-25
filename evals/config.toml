@@ -1,0 +1,27 @@
+# Quality gate for the RAG application. Reviewed like code: raising a threshold is a
+# product decision, lowering one needs a justification in the PR description.
+
+[run]
+concurrency = 4
+
+[scoring]
+similarity_backend = "lexical"   # "embedding" = sentence-transformers (pip install '.[semantic]')
+min_case_similarity = 0.5        # an answer below this similarity to the ground truth fails its case
+fact_coverage = 0.8              # share of a fact's content tokens a chunk must contain to count as a hit
+refusal_markers = ["i don't know", "i do not know", "not in the available documentation", "cannot answer"]
+
+[thresholds]
+# min_<metric> / max_<metric>, where <metric> is any key of report.json -> "metrics".
+min_accuracy = 0.80
+min_refusal_accuracy = 1.0       # never hallucinate on out-of-scope questions
+min_context_recall = 0.85
+min_context_precision = 0.80
+min_faithfulness = 0.90
+min_answer_similarity = 0.60
+max_latency_p95_ms = 500
+max_error_rate = 0.0
+
+[regression]
+# Compared with the baseline report produced on the default branch.
+enabled = true
+max_drop = 0.05                  # fail if a quality metric drops by more than 5 points

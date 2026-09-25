@@ -1,0 +1,136 @@
+name: RAG evaluation
+
+# Runs whenever something that can change the assistant's behaviour changes:
+# the application code, its prompts/config, the knowledge base, the eval harness or the golden set.
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "knowledge_base/**"
+      - "evals/**"
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/eval.yml"
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 5 * * *" # nightly: catches drift from external models, APIs or data
+  workflow_dispatch:
+    inputs:
+      system:
+        description: "System under test (local | http | module:Class)"
+        default: "local"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1. The harness itself must be correct before we trust its verdict on the app.
+  test:
+    name: Unit tests (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e '.[dev]'
+      - run: ruff check . && ruff format --check .
+      - run: pytest --cov=rageval --cov-report=term-missing
+
+  # 2. The quality gate: evaluate the assistant and block the merge if it regressed.
+  evaluate:
+    name: Quality gate
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write # sticky PR comment with the report
+    env:
+      # Only used when app/config.toml sets generation.mode = "openai_compatible".
+      LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Run evaluation suite
+        id: eval
+        run: |
+          set +e
+          rageval run \
+            --system "${{ inputs.system || 'local' }}" \
+            --baseline evals/baseline.json \
+            --out reports
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-${{ github.run_number }}
+          path: reports/
+          retention-days: 30
+
+      - name: Comment report on the pull request
+        # Fork PRs get a read-only token: the job summary still shows the report.
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- rageval-report -->';
+            const body = `${marker}\n${fs.readFileSync('reports/report.md', 'utf8')}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const previous = comments.find(c => c.body?.startsWith(marker));
+            if (previous) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: previous.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Enforce quality gate
+        run: |
+          code="${{ steps.eval.outputs.exit_code }}"
+          if [ "$code" = "1" ]; then echo "::error::Quality gate failed — see the report above"; fi
+          if [ "$code" = "2" ]; then echo "::error::Evaluation could not run (configuration error)"; fi
+          exit "$code"
+
+  # 3. Same suite, against the application running as a service — how you would
+  #    evaluate a staging / preview deployment before promoting it.
+  evaluate-service:
+    name: Quality gate (HTTP service)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+      - name: Start the RAG service
+        run: |
+          python -m app.server --port 8000 &
+          for i in $(seq 1 30); do curl -sf localhost:8000/healthz && exit 0; sleep 1; done
+          echo "service did not start" && exit 1
+      - name: Evaluate the running service
+        run: rageval run --system http --system-opt url=http://127.0.0.1:8000/answer --out reports-http

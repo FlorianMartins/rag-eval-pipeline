@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rageval"
+version = "0.1.0"
+description = "Lightweight, CI-first evaluation pipeline and quality gate for RAG systems and AI agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Florian Martins" }]
+keywords = ["llm", "rag", "evaluation", "mlops", "llmops", "ci", "quality-gate"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Testing",
+]
+# The core harness has ZERO runtime dependencies: it runs anywhere Python runs,
+# with nothing to audit or pin in the CI image.
+dependencies = []
+
+[project.optional-dependencies]
+semantic = ["sentence-transformers>=3.0"]   # embedding-based answer similarity
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6"]
+
+[project.scripts]
+rageval = "rageval.cli:main"
+
+[tool.setuptools]
+package-dir = { "rageval" = "src/rageval", "app" = "app" }
+packages = ["rageval", "rageval.metrics", "rageval.systems", "app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N", "BLE", "RUF"]
+ignore = ["S101", "RUF001"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]

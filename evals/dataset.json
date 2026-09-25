@@ -1,0 +1,383 @@
+{
+  "name": "northwind-support-golden",
+  "version": "1.1.0",
+  "description": "Golden set for the Northwind Cloud support assistant. Each answerable case carries a ground-truth answer, the facts the retriever must surface (expected_context) and deterministic assertions. Out-of-scope cases (answerable=false) check that the assistant declines instead of hallucinating.",
+  "cases": [
+    {
+      "id": "billing-team-price",
+      "question": "How much does the Team plan cost?",
+      "ground_truth": "The Team plan costs 29 euros per user per month.",
+      "expected_context": [
+        "The Team plan costs 29 euros per user per month"
+      ],
+      "assertions": {
+        "must_include": [
+          "29"
+        ],
+        "must_not_include": [
+          "12 euros"
+        ]
+      },
+      "tags": [
+        "billing"
+      ]
+    },
+    {
+      "id": "billing-starter-storage",
+      "question": "How much storage does the Starter plan include?",
+      "ground_truth": "The Starter plan includes 50 GB of storage.",
+      "expected_context": [
+        "The Starter plan includes 50 GB of storage"
+      ],
+      "assertions": {
+        "must_include": [
+          "50 GB"
+        ]
+      },
+      "tags": [
+        "billing"
+      ]
+    },
+    {
+      "id": "billing-annual-discount",
+      "question": "What discount do annual payments get?",
+      "ground_truth": "Customers who pay annually receive a 15 percent discount on every plan.",
+      "expected_context": [
+        "Customers who pay annually receive a 15 percent discount"
+      ],
+      "assertions": {
+        "must_include": [
+          "15 percent|15%"
+        ]
+      },
+      "tags": [
+        "billing"
+      ]
+    },
+    {
+      "id": "billing-invoices",
+      "question": "When are invoices issued?",
+      "ground_truth": "Invoices are issued on the first day of each month and are payable within 30 days.",
+      "expected_context": [
+        "Invoices are issued on the first day of each month"
+      ],
+      "assertions": {
+        "must_include": [
+          "first day"
+        ]
+      },
+      "tags": [
+        "billing"
+      ]
+    },
+    {
+      "id": "security-regions",
+      "question": "Which regions host customer data?",
+      "ground_truth": "Customer data is hosted in Frankfurt and Paris and never leaves the European Union.",
+      "expected_context": [
+        "Customer data is hosted in the Frankfurt and Paris regions"
+      ],
+      "assertions": {
+        "must_include": [
+          "Frankfurt",
+          "Paris"
+        ],
+        "must_not_include": [
+          "United States"
+        ]
+      },
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "security-incident-sla",
+      "question": "How fast are security incidents reported?",
+      "ground_truth": "Security incidents are reported to affected customers within 72 hours.",
+      "expected_context": [
+        "Security incidents are reported to affected customers within 72 hours"
+      ],
+      "assertions": {
+        "must_include": [
+          "72 hours"
+        ]
+      },
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "security-encryption-at-rest",
+      "question": "What encryption is used for data at rest?",
+      "ground_truth": "Customer data is encrypted at rest with AES-256.",
+      "expected_context": [
+        "All customer data is encrypted at rest with AES-256"
+      ],
+      "assertions": {
+        "must_include": [
+          "AES-256"
+        ]
+      },
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "security-certifications",
+      "question": "Which certifications and audits does Northwind Cloud have?",
+      "ground_truth": "Northwind Cloud is ISO 27001 certified and completes a SOC 2 Type II audit every year.",
+      "expected_context": [
+        "Northwind Cloud is certified ISO 27001 and completes a SOC 2 Type II audit every year"
+      ],
+      "assertions": {
+        "must_include": [
+          "ISO 27001",
+          "SOC 2"
+        ]
+      },
+      "tags": [
+        "security"
+      ]
+    },
+    {
+      "id": "api-rate-limit",
+      "question": "What is the API rate limit?",
+      "ground_truth": "The API rate limit is 600 requests per minute per organization.",
+      "expected_context": [
+        "The API rate limit is 600 requests per minute per organization"
+      ],
+      "assertions": {
+        "must_include": [
+          "600"
+        ]
+      },
+      "tags": [
+        "api"
+      ]
+    },
+    {
+      "id": "api-rate-limit-exceeded",
+      "question": "What HTTP status code is returned when the rate limit is exceeded?",
+      "ground_truth": "The API returns HTTP status 429 with a Retry-After header.",
+      "expected_context": [
+        "When the rate limit is exceeded the API returns HTTP status 429"
+      ],
+      "assertions": {
+        "must_include": [
+          "429"
+        ]
+      },
+      "tags": [
+        "api"
+      ]
+    },
+    {
+      "id": "api-webhook-signature",
+      "question": "How are webhooks signed?",
+      "ground_truth": "Webhooks are signed with HMAC SHA-256 using the secret from the admin console.",
+      "expected_context": [
+        "Webhooks are signed with HMAC SHA-256"
+      ],
+      "assertions": {
+        "must_include": [
+          "HMAC"
+        ]
+      },
+      "tags": [
+        "api"
+      ]
+    },
+    {
+      "id": "api-version",
+      "question": "What is the current API version?",
+      "ground_truth": "The current version of the REST API is v3.",
+      "expected_context": [
+        "The REST API is versioned and the current version is v3"
+      ],
+      "assertions": {
+        "must_include": [
+          "v3"
+        ]
+      },
+      "tags": [
+        "api"
+      ]
+    },
+    {
+      "id": "data-backup-retention",
+      "question": "How long are backups kept?",
+      "ground_truth": "Backups are kept for 35 days.",
+      "expected_context": [
+        "Backups are taken every 6 hours and kept for 35 days"
+      ],
+      "assertions": {
+        "must_include": [
+          "35 days"
+        ]
+      },
+      "tags": [
+        "data"
+      ]
+    },
+    {
+      "id": "data-account-deletion",
+      "question": "When is customer data deleted after an account is closed?",
+      "ground_truth": "Customer data is permanently deleted 90 days after the account is closed.",
+      "expected_context": [
+        "When an account is closed, customer data is permanently deleted after 90 days"
+      ],
+      "assertions": {
+        "must_include": [
+          "90 days"
+        ],
+        "must_not_include": [
+          "30 days"
+        ]
+      },
+      "tags": [
+        "data"
+      ]
+    },
+    {
+      "id": "data-export",
+      "question": "Can I export my data?",
+      "ground_truth": "Yes, customers can export all their data at any time in JSON or CSV format from the admin console.",
+      "expected_context": [
+        "Customers can export all their data at any time in JSON or CSV format"
+      ],
+      "assertions": {
+        "must_include": [
+          "JSON",
+          "CSV"
+        ]
+      },
+      "tags": [
+        "data"
+      ]
+    },
+    {
+      "id": "support-enterprise-critical",
+      "question": "What is the response time for critical incidents on Enterprise?",
+      "ground_truth": "Enterprise customers get 24/7 phone support with a one hour response time for critical incidents.",
+      "expected_context": [
+        "Enterprise customers get 24/7 phone support with a one hour response time for critical incidents"
+      ],
+      "assertions": {
+        "must_include": [
+          "one hour|1 hour"
+        ]
+      },
+      "tags": [
+        "support"
+      ]
+    },
+    {
+      "id": "multi-plan-prices",
+      "question": "How much do the Starter and Team plans cost per user?",
+      "ground_truth": "The Starter plan costs 12 euros and the Team plan costs 29 euros per user per month.",
+      "expected_context": [
+        "The Starter plan costs 12 euros per user per month",
+        "The Team plan costs 29 euros per user per month"
+      ],
+      "assertions": {
+        "must_include": [
+          "12 euros",
+          "29 euros"
+        ]
+      },
+      "tags": [
+        "billing",
+        "multi-fact"
+      ]
+    },
+    {
+      "id": "multi-backups-trash",
+      "question": "How often are backups taken, and how long do deleted files stay in the trash?",
+      "ground_truth": "Backups are taken every 6 hours, and deleted files stay in the trash for 30 days.",
+      "expected_context": [
+        "Backups are taken every 6 hours",
+        "Deleted files stay in the trash for 30 days"
+      ],
+      "assertions": {
+        "must_include": [
+          "6 hours",
+          "30 days"
+        ]
+      },
+      "tags": [
+        "data",
+        "multi-fact"
+      ]
+    },
+    {
+      "id": "multi-support-tiers",
+      "question": "What support do Team customers get compared with Enterprise customers?",
+      "ground_truth": "Team customers get live chat support on business days, while Enterprise customers get 24/7 phone support.",
+      "expected_context": [
+        "Team customers get live chat support from 8am to 8pm",
+        "Enterprise customers get 24/7 phone support"
+      ],
+      "assertions": {
+        "must_include": [
+          "live chat",
+          "24/7"
+        ]
+      },
+      "tags": [
+        "support",
+        "multi-fact"
+      ]
+    },
+    {
+      "id": "multi-encryption-transit",
+      "question": "Which TLS version protects data in transit, and where is the data hosted?",
+      "ground_truth": "Data in transit is protected with TLS 1.3 and hosted in the Frankfurt and Paris regions.",
+      "expected_context": [
+        "encrypted in transit with TLS 1.3",
+        "Customer data is hosted in the Frankfurt and Paris regions"
+      ],
+      "assertions": {
+        "must_include": [
+          "TLS 1.3",
+          "Frankfurt"
+        ]
+      },
+      "tags": [
+        "security",
+        "multi-fact"
+      ]
+    },
+    {
+      "id": "oos-kubernetes",
+      "question": "Do you support Kubernetes?",
+      "answerable": false,
+      "tags": [
+        "out-of-scope"
+      ]
+    },
+    {
+      "id": "oos-free-trial",
+      "question": "Do you offer a free trial?",
+      "answerable": false,
+      "tags": [
+        "out-of-scope"
+      ]
+    },
+    {
+      "id": "oos-on-premise",
+      "question": "Is there an on-premise version?",
+      "answerable": false,
+      "tags": [
+        "out-of-scope"
+      ]
+    },
+    {
+      "id": "oos-ceo",
+      "question": "What is the CEO's name?",
+      "answerable": false,
+      "tags": [
+        "out-of-scope"
+      ]
+    }
+  ]
+}

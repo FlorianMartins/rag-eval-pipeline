@@ -1,0 +1,147 @@
+"""Report writers. JSON is the machine-readable artifact (baselines, dashboards, trend
+tracking); Markdown is for humans (PR comment, GitHub job summary)."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from rageval.evaluator import CaseResult
+from rageval.gate import Check
+
+_METRIC_LABELS = {
+    "accuracy": "Accuracy (all cases)",
+    "answerable_accuracy": "Accuracy — answerable",
+    "refusal_accuracy": "Refusal accuracy — out-of-scope",
+    "answer_similarity": "Answer similarity",
+    "token_f1": "Token F1",
+    "context_recall": "Context recall",
+    "context_precision": "Context precision",
+    "faithfulness": "Faithfulness (groundedness)",
+    "latency_p50_ms": "Latency p50 (ms)",
+    "latency_p95_ms": "Latency p95 (ms)",
+    "error_rate": "Error rate",
+}
+
+
+def build_report(
+    *,
+    metadata: dict[str, Any],
+    metrics: dict[str, Any],
+    by_tag: dict[str, Any],
+    results: list[CaseResult],
+    passed: bool,
+    checks: list[Check],
+    baseline: dict[str, Any] | None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "metadata": metadata,
+        "gate": {"passed": passed, "checks": [c.to_dict() for c in checks]},
+        "metrics": metrics,
+        "metrics_by_tag": by_tag,
+        "baseline_metrics": baseline,
+        "cases": [r.to_dict() for r in results],
+    }
+
+
+def _fmt(value: Any) -> str:
+    if value is None:
+        return "—"
+    if isinstance(value, float):
+        return f"{value:.3f}".rstrip("0").rstrip(".") if value != int(value) else f"{value:.0f}"
+    return str(value)
+
+
+def _delta(now: Any, before: Any) -> str:
+    if not isinstance(now, (int, float)) or not isinstance(before, (int, float)):
+        return ""
+    diff = now - before
+    if abs(diff) < 1e-9:
+        return "±0"
+    return f"{diff:+.3f}"
+
+
+def _clip(text: str | None, limit: int = 90) -> str:
+    text = (text or "").replace("|", "\\|").replace("\n", " ")
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def to_markdown(report: dict[str, Any]) -> str:
+    meta, metrics, gate = report["metadata"], report["metrics"], report["gate"]
+    baseline = report.get("baseline_metrics")
+    status = "✅ PASSED" if gate["passed"] else "❌ FAILED"
+    lines = [
+        f"## RAG evaluation — quality gate {status}",
+        "",
+        f"**{metrics['passed_cases']}/{metrics['total_cases']} cases passed** · "
+        f"dataset `{meta['dataset']['name']}` v{meta['dataset']['version']} "
+        f"(`{meta['dataset']['sha256'][:12]}`) · system `{meta['system'].get('type', '?')}` · "
+        f"commit `{(meta.get('git_sha') or 'local')[:8]}`",
+        "",
+        "### Quality gate",
+        "",
+        "| Check | Actual | Required | Status |",
+        "|---|---:|---:|:---:|",
+    ]
+    for c in gate["checks"]:
+        lines.append(
+            f"| `{c['name']}` | {_fmt(c['actual'])} | {c['comparator']} {_fmt(c['threshold'])} | "
+            f"{'✅' if c['passed'] else '❌'} |"
+        )
+
+    lines += ["", "### Metrics", ""]
+    if baseline:
+        lines += ["| Metric | Value | Baseline | Δ |", "|---|---:|---:|---:|"]
+    else:
+        lines += ["| Metric | Value |", "|---|---:|"]
+    for key, label in _METRIC_LABELS.items():
+        if key not in metrics:
+            continue
+        if baseline:
+            before = baseline.get(key)
+            lines.append(f"| {label} | {_fmt(metrics[key])} | {_fmt(before)} | {_delta(metrics[key], before)} |")
+        else:
+            lines.append(f"| {label} | {_fmt(metrics[key])} |")
+
+    if report.get("metrics_by_tag"):
+        lines += ["", "### By category", "", "| Tag | Cases | Accuracy | Context recall |", "|---|---:|---:|---:|"]
+        for tag, m in report["metrics_by_tag"].items():
+            lines.append(f"| {tag} | {m['cases']} | {_fmt(m['accuracy'])} | {_fmt(m['context_recall'])} |")
+
+    failed = [c for c in report["cases"] if not c["correct"]]
+    lines += ["", f"### Failed cases ({len(failed)})", ""]
+    if not failed:
+        lines.append("None 🎉")
+    else:
+        lines += ["| Case | Question | Answer | Why |", "|---|---|---|---|"]
+        for c in failed:
+            why = "; ".join(c["failures"]) or (c["error"] or "")
+            lines.append(f"| `{c['id']}` | {_clip(c['question'], 60)} | {_clip(c['answer'])} | {_clip(why, 80)} |")
+
+    lines += [
+        "",
+        "<details><summary>All cases</summary>",
+        "",
+        "| Case | ✓ | Similarity | Ctx recall | Ctx precision | Faithfulness | Latency (ms) |",
+        "|---|:---:|---:|---:|---:|---:|---:|",
+    ]
+    for c in report["cases"]:
+        lines.append(
+            f"| `{c['id']}` | {'✅' if c['correct'] else '❌'} | {_fmt(c['answer_similarity'])} | "
+            f"{_fmt(c['context_recall'])} | {_fmt(c['context_precision'])} | {_fmt(c['faithfulness'])} | "
+            f"{_fmt(c['latency_ms'])} |"
+        )
+    footer = f"<sub>Generated by rageval {meta['rageval_version']} at {meta['timestamp']}</sub>"
+    lines += ["", "</details>", "", footer, ""]
+    return "\n".join(lines)
+
+
+def write_reports(report: dict[str, Any], out_dir: str | Path) -> tuple[Path, Path]:
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    json_path, md_path = out / "report.json", out / "report.md"
+    json_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    md_path.write_text(to_markdown(report), encoding="utf-8")
+    return json_path, md_path

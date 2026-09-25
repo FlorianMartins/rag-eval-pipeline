@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "rageval_version": "0.1.0",
+    "timestamp": "2026-09-25T09:13:37+00:00",
+    "git_sha": null,
+    "dataset": {
+      "name": "northwind-support-golden",
+      "version": "1.1.0",
+      "sha256": "f71b29bdd20453369780b64499f661286db012439a4bd33a3a8e2c93a29b2dd4",
+      "path": "evals/dataset.json"
+    },
+    "system": {
+      "type": "local",
+      "top_k": 3,
+      "min_score": 1.5,
+      "min_coverage": 0.5,
+      "mode": "extractive"
+    }
+  },
+  "metrics": {
+    "total_cases": 24,
+    "passed_cases": 22,
+    "accuracy": 0.9167,
+    "answerable_accuracy": 0.9,
+    "refusal_accuracy": 1.0,
+    "answer_similarity": 0.7859,
+    "token_f1": 0.7699,
+    "context_recall": 1.0,
+    "context_precision": 1.0,
+    "faithfulness": 1.0,
+    "latency_mean_ms": 0.05,
+    "latency_p50_ms": 0.05,
+    "latency_p95_ms": 0.09,
+    "latency_max_ms": 0.1,
+    "error_rate": 0.0
+  }
+}

@@ -1,0 +1,16 @@
+# Configuration of the RAG application under test.
+# Any change here (or in app/prompts/) triggers the evaluation workflow in CI.
+
+[retrieval]
+knowledge_base = "knowledge_base"
+top_k = 3            # number of chunks handed to the generator
+min_score = 1.5      # below this BM25 score the assistant refuses to answer
+min_coverage = 0.5   # share of the question (IDF-weighted) the best chunk must cover
+
+[generation]
+# "extractive" runs fully offline and deterministically (default, used in CI).
+# "openai_compatible" calls any OpenAI-compatible endpoint (OpenAI, vLLM, Ollama, LiteLLM...)
+# configured with LLM_BASE_URL / LLM_API_KEY / LLM_MODEL.
+mode = "extractive"
+prompt_template = "app/prompts/answer.txt"
+temperature = 0.0
