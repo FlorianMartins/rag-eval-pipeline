@@ -9,7 +9,7 @@
 
 `rageval` is a lightweight, open-source evaluation harness for RAG systems and agents. It runs a versioned golden dataset against the system under test, scores answers and retrieval with deterministic metrics, writes JSON + Markdown reports, and exits non-zero when quality drops — so it plugs into any CI/CD pipeline as a **quality gate**.
 
-- **Zero runtime dependencies**: standard library only. Nothing to pin, audit or download in CI.
+- **Zero-dependency harness**: the evaluator is standard library only. (The demo app's hybrid retrieval is an opt-in extra.)
 - **Offline & deterministic by default**: same commit → same score. No flaky gate, no API bill per PR.
 - **System-agnostic**: evaluate an in-process pipeline, a deployed HTTP service, or any `module:Class` adapter.
 - **CI-native**: exit codes, GitHub job summary, sticky PR comment, report artifacts, nightly drift run.
@@ -22,20 +22,22 @@ The repository ships a small RAG assistant (`app/`) and a 24-case golden set. He
 
 | Metric | Baseline | After the change | |
 |---|---:|---:|---|
-| Accuracy on answerable questions | 0.90 | **1.00** | looks like an improvement |
-| Overall accuracy | 0.917 | 0.875 | still above the 0.80 floor, within the 5-pt regression budget |
-| Faithfulness (groundedness) | 1.00 | 1.00 | unchanged |
-| **Refusal accuracy (out-of-scope)** | 1.00 | **0.25** | ❌ **gate fails** |
+| Accuracy on answerable questions | 1.00 | 1.00 | unchanged: looks harmless |
+| Overall accuracy | 1.00 | 0.917 | still well above the 0.80 floor |
+| Faithfulness (groundedness) | 1.00 | 1.00 | unchanged: every sentence is copied from the docs |
+| **Refusal accuracy (out-of-scope)** | 1.00 | **0.50** | ❌ **gate fails** |
 
-The change *helps* on in-scope questions and makes the assistant **confidently invent answers** to 3 of 4 questions it should decline ("Do you support Kubernetes?" → *"Support is available by email on every plan."*). An accuracy threshold alone — even with a regression check — would have merged it. This is why the gate is a set of checks on **complementary** metrics, each targeting a different failure mode.
+The change leaves every in-scope answer intact and makes the assistant **confidently answer questions it should decline** ("Do you support Kubernetes?" → *"Support is available by email on every plan."*). The answer is even perfectly "faithful" — copied verbatim from the documentation — just not an answer. An accuracy floor would have merged it. This is why the gate is a set of checks on **complementary** metrics, each targeting a different failure mode.
 
-The three degraded configurations below are each caught by a different check, and are covered by the test suite:
+Each degraded configuration is caught — and not always by the check you would expect:
 
 | Change | Failure mode | Caught by |
 |---|---|---|
-| `top_k=1` | retriever starved: multi-part questions lose context | `context_recall` ↓ → `min_accuracy` |
-| `min_coverage=0.2` | guardrail loosened: hallucinates on out-of-scope | `min_refusal_accuracy` |
+| `top_k=1` | retriever starved: multi-part questions lose context | **only** the regression check (accuracy 1.00 → 0.83, recall 1.00 → 0.90): still above every absolute floor |
+| `min_coverage=0.2` | guardrail loosened: answers out-of-scope questions | `min_refusal_accuracy` |
 | `min_coverage=0.8` | over-cautious: refuses answerable questions | `min_accuracy`, `min_answer_similarity` |
+
+The first row is the lesson of improving a system: once it scores 1.00, an 0.80 floor no longer protects anything. The **baseline** is what holds the level you have reached.
 
 Sample reports: [passing run](docs/sample-report-pass.md) · [failing run](docs/sample-report-fail.md).
 
@@ -74,13 +76,15 @@ The harness (`src/rageval`) and the application under test (`app/`) are delibera
 ```
 rag-eval-pipeline/
 ├── app/                        # THE SYSTEM UNDER TEST (replace with yours)
-│   ├── rag_app.py              #   BM25 retrieval + extractive or LLM generation
+│   ├── rag_app.py              #   BM25 or hybrid retrieval + extractive or LLM generation
+│   ├── embeddings.py           #   dense index + word-level grounding (model2vec)
 │   ├── server.py               #   same app exposed over HTTP (/answer, /healthz)
 │   ├── config.toml             #   top_k, refusal thresholds, generation mode
 │   └── prompts/answer.txt      #   prompt template (LLM mode)
 ├── knowledge_base/             # documents the RAG app retrieves from
 ├── evals/                      # EVALUATION-AS-CODE, reviewed like code
-│   ├── dataset.json            #   golden set: questions, ground truth, expected context, assertions
+│   ├── dataset.json            #   golden set (GATES merges): questions, ground truth, expected context, assertions
+│   ├── challenge.json          #   challenge set (report-only): paraphrases & near-topic traps
 │   ├── config.toml             #   quality-gate thresholds and scoring settings
 │   └── baseline.json           #   metrics of the last accepted version (regression reference)
 ├── src/rageval/                # THE EVALUATION HARNESS
@@ -91,7 +95,7 @@ rag-eval-pipeline/
 │   ├── gate.py                 #   thresholds + regression checks → pass/fail
 │   ├── report.py               #   JSON + Markdown reports
 │   └── cli.py                  #   `rageval run` / `rageval baseline`, exit-code contract
-├── tests/                      # 44 tests: metrics, gate, runner, CLI end-to-end, HTTP
+├── tests/                      # 54 tests: metrics, gate, runner, CLI end-to-end, HTTP, hybrid app
 ├── docs/                       # sample reports
 ├── .github/workflows/eval.yml  # CI: tests → quality gate → service gate
 ├── Dockerfile · Makefile · pyproject.toml
@@ -159,16 +163,17 @@ Requires Python ≥ 3.11.
 ```bash
 git clone https://github.com/FlorianMartins/rag-eval-pipeline.git
 cd rag-eval-pipeline
-make install            # venv + editable install (or: pip install -e '.[dev]')
+make install            # venv + editable install (or: pip install -e '.[dev,embeddings]')
 make eval               # run the golden set + quality gate  → reports/report.{json,md}
-make test               # lint + 44 tests
+make test               # lint + 54 tests
 ```
 
 See the gate fail on purpose:
 
 ```bash
-make eval-degraded      # top_k=1          → exit 1
-make eval-hallucination # min_coverage=0.2 → exit 1
+make eval-degraded      # top_k=1          → exit 1 (regression vs baseline)
+make eval-hallucination # min_coverage=0.2 → exit 1 (refusal accuracy)
+make eval-challenge     # hard cases, report-only
 ```
 
 Useful options:
@@ -192,7 +197,7 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/reports:/workspace/reports" 
 docker run --rm rageval run --system-opt top_k=1   # any CLI arguments
 ```
 
-The image runs as a non-root user (`--user` maps it to yours so the mounted `reports/` stays writable) and contains only the harness, the app, the knowledge base and the golden set.
+The image runs as a non-root user (`--user` maps it to yours so the mounted `reports/` stays writable). The embedding model is baked in at its pinned revision, so the container evaluates **offline** (`--network none` is tested in CI).
 
 ### Against a running service
 
@@ -208,6 +213,30 @@ This is how you would gate a **staging or preview deployment** before promoting 
 Set `generation.mode = "openai_compatible"` in `app/config.toml` and export `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`. Any OpenAI-compatible endpoint works (OpenAI, vLLM, Ollama, LiteLLM, …). Switch `similarity_backend` to `"embedding"` so paraphrased answers are scored fairly.
 
 ---
+
+## Hybrid retrieval: fixing failures without buying hallucinations
+
+The first version (BM25 only) failed two golden cases on vocabulary mismatch: the docs say *"annually"* and *"encrypted"*, the questions said *"annual"* and *"encryption"*. Retrieval was fine (context recall 1.0); the **refusal guard** decided the question was not answered and declined.
+
+`retrieval.mode = "hybrid"` adds [model2vec](https://github.com/MinishLab/model2vec) static embeddings (`potion-base-8M`, ~30 MB, numpy only, pinned revision) in two places:
+
+1. **Retrieval** — BM25 and dense rankings merged with Reciprocal Rank Fusion.
+2. **Grounding** — the refusal guard asks what share of the question (IDF-weighted) is *grounded* in the answer chunk. A word now counts as grounded if it appears there **or** has an embedding neighbour there (*yearly ≈ annually* 0.85, *trashed ≈ trash* 0.91, *monthly ≈ month* 0.83).
+
+The obvious alternative — answer when the question is *semantically close* to a chunk — was measured and rejected: *"What is the API rate limit for the **free tier**?"* scores 0.72 against the rate-limit chunk, higher than most legitimate questions, yet there is no free tier. **Topical similarity is not answerability.** Word-level grounding keeps *free*, *student*, *employees*, *premium* ungrounded (0.07–0.29), so those questions are still refused.
+
+Measured with the pipeline itself:
+
+| | Golden set (gate) | Challenge: paraphrases answered | Challenge: traps refused |
+|---|---:|---:|---:|
+| BM25 (v0.1) | 22/24 | — | — |
+| BM25 + tokenizer fix | 23/24 | 1/11 | 9/9 |
+| Hybrid, sentence similarity *(rejected)* | 24/24 | 6/11 | 6/9 — answers *student discount*, *free tier*, *employees* |
+| **Hybrid, word grounding (shipped)** | **24/24** | **4/11** | **9/9** |
+
+Attribution matters: one of the two fixes (`encryption-at-rest`) actually came from a tokenizer change ("used" is now a stopword), not from the embeddings — the table separates them.
+
+**The challenge set** (`evals/challenge.json`) holds hard cases written *after* the thresholds were chosen, so they cannot have been tuned on. It runs in CI in report-only mode (`--no-fail`): it tracks progress on unsolved problems without blocking merges. A case graduates to the golden set once the system handles it reliably. The 7 paraphrases still missed (*ciphers* → TLS, *servers* → regions, *identity provider* → SSO) need more than word-level similarity — see the roadmap.
 
 ## Evaluating your own system
 
@@ -305,15 +334,17 @@ To make it a hard merge requirement, mark **Quality gate** as a required status 
 ## Design decisions
 
 - **Deterministic metrics in the gate, LLM-as-judge outside it.** An LLM judge captures semantics better, but it is non-deterministic, costs money per PR and can itself regress. The gate should be cheap and stable; an LLM judge fits the nightly run or a pre-release review.
-- **Zero runtime dependencies.** The harness is often the first thing added to a pipeline; it should not bring a supply-chain review with it. Heavier backends (embeddings) are opt-in extras.
-- **The demo app is deliberately simple** (BM25 + extractive answers) so the whole pipeline runs offline in under a second and the failure modes are explainable. It is a stand-in: swap it for your system via an adapter.
-- **Known failures are kept in the golden set.** Two cases fail today (`billing-annual-discount`, `security-encryption-at-rest`). Retrieval finds the right chunk (context recall 1.0), but lexical matching misses "annual"/"annually" and "encryption"/"encrypted", so the assistant refuses. Deleting those cases would make the dashboard greener and the product no better. They are the motivation for the first roadmap item.
+- **Zero-dependency harness, optional app extras.** The harness is often the first thing added to a pipeline; it should not bring a supply-chain review with it. The demo app's embeddings (`[embeddings]`) and embedding-based answer scoring (`[semantic]`) are opt-in.
+- **Harness tests are pinned to a BM25 config** (`tests/fixtures/`): they test the harness, not the app, so tuning the app never breaks them, and they need no model download.
+- **Pinned model revision.** An embedding model updated upstream changes scores silently; pinning makes it a reviewed diff in `app/config.toml` (and keys the CI cache).
+- **The demo app is deliberately simple** (extractive answers, a 30 MB static-embedding model) so the whole pipeline runs offline in seconds and the failure modes are explainable. It is a stand-in: swap it for your system via an adapter.
+- **Thresholds are chosen on the golden set and checked on the challenge set.** The tightest golden case (`security-encryption-at-rest`) grounds at 0.51 against a 0.50 threshold: deterministic thanks to the pinned model, but documented rather than hidden.
 
 ## Limitations & roadmap
 
 - **Sample size.** With 24 cases one case is ≈ 4 points of accuracy, so `max_drop = 0.05` tolerates about one flipped case. Grow the golden set (and report bootstrap confidence intervals) before tightening thresholds.
 - **Non-deterministic systems.** For LLM mode at temperature > 0: repeat each case *n* times and gate on the mean / pass@k.
-- **Semantic retrieval** (embeddings + hybrid BM25) in the demo app to fix the two known failures — and prove it with the gate.
+- **Query rewriting / a cross-encoder reranker** for the 7 challenge paraphrases that word-level similarity cannot bridge (*ciphers* → TLS, *identity provider* → SSO), keeping traps at 9/9.
 - **LLM-as-judge** backend for faithfulness and correctness, with judge-agreement tracking against human labels.
 - **Cost tracking** (tokens per case) as a gated metric alongside latency.
 - **Agent evaluation**: tool-call assertions (expected tool, arguments) and trajectory checks for multi-step agents.

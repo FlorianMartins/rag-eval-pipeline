@@ -3,9 +3,16 @@
 
 [retrieval]
 knowledge_base = "knowledge_base"
+mode = "hybrid"      # "bm25" (lexical only, no dependency) or "hybrid" (BM25 + embeddings, RRF fusion)
 top_k = 3            # number of chunks handed to the generator
-min_score = 1.5      # below this BM25 score the assistant refuses to answer
-min_coverage = 0.5   # share of the question (IDF-weighted) the best chunk must cover
+min_score = 1.5      # bm25 mode: below this BM25 score the assistant refuses to answer
+min_coverage = 0.5   # share of the question (IDF-weighted) the answer chunks must ground
+
+[retrieval.hybrid]   # needs: pip install '.[embeddings]'
+embedding_model = "minishlab/potion-base-8M"
+embedding_revision = "bf8b056651a2c21b8d2565580b8569da283cab23"   # pinned: model updates are reviewed changes
+rrf_k = 60           # Reciprocal Rank Fusion constant
+term_similarity = 0.6  # a question word is grounded by a chunk word at least this close (cosine)
 
 [generation]
 # "extractive" runs fully offline and deterministically (default, used in CI).

@@ -1,3 +1,4 @@
 # The evaluation harness itself has no runtime dependency (standard library only).
+# The demo app's hybrid retrieval needs the [embeddings] extra (model2vec, numpy).
 # Install the project in editable mode:
--e .
+-e .[embeddings]
