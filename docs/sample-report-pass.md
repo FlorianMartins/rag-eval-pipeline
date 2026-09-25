@@ -1,21 +1,21 @@
 ## RAG evaluation — quality gate ✅ PASSED
 
-**22/24 cases passed** · dataset `northwind-support-golden` v1.1.0 (`f71b29bdd204`) · system `local` · commit `local`
+**24/24 cases passed** · dataset `northwind-support-golden` v1.1.0 (`f71b29bdd204`) · system `local` · commit `5a220bfa`
 
 ### Quality gate
 
 | Check | Actual | Required | Status |
 |---|---:|---:|:---:|
-| `min_accuracy` | 0.917 | >= 0.8 | ✅ |
+| `min_accuracy` | 1 | >= 0.8 | ✅ |
 | `min_refusal_accuracy` | 1 | >= 1 | ✅ |
 | `min_context_recall` | 1 | >= 0.85 | ✅ |
 | `min_context_precision` | 1 | >= 0.8 | ✅ |
 | `min_faithfulness` | 1 | >= 0.9 | ✅ |
-| `min_answer_similarity` | 0.786 | >= 0.6 | ✅ |
-| `max_latency_p95_ms` | 0.08 | <= 500 | ✅ |
+| `min_answer_similarity` | 0.867 | >= 0.6 | ✅ |
+| `max_latency_p95_ms` | 7.92 | <= 500 | ✅ |
 | `max_error_rate` | 0 | <= 0 | ✅ |
-| `no_regression_accuracy` | 0.917 | >= 0.867 | ✅ |
-| `no_regression_answer_similarity` | 0.786 | >= 0.736 | ✅ |
+| `no_regression_accuracy` | 1 | >= 0.867 | ✅ |
+| `no_regression_answer_similarity` | 0.867 | >= 0.736 | ✅ |
 | `no_regression_context_recall` | 1 | >= 0.95 | ✅ |
 | `no_regression_context_precision` | 1 | >= 0.95 | ✅ |
 | `no_regression_faithfulness` | 1 | >= 0.95 | ✅ |
@@ -24,16 +24,16 @@
 
 | Metric | Value | Baseline | Δ |
 |---|---:|---:|---:|
-| Accuracy (all cases) | 0.917 | 0.917 | ±0 |
-| Accuracy — answerable | 0.9 | 0.9 | ±0 |
+| Accuracy (all cases) | 1 | 0.917 | +0.083 |
+| Accuracy — answerable | 1 | 0.9 | +0.100 |
 | Refusal accuracy — out-of-scope | 1 | 1 | ±0 |
-| Answer similarity | 0.786 | 0.786 | ±0 |
-| Token F1 | 0.77 | 0.77 | ±0 |
+| Answer similarity | 0.867 | 0.786 | +0.081 |
+| Token F1 | 0.851 | 0.77 | +0.081 |
 | Context recall | 1 | 1 | ±0 |
 | Context precision | 1 | 1 | ±0 |
 | Faithfulness (groundedness) | 1 | 1 | ±0 |
-| Latency p50 (ms) | 0.05 | 0.05 | ±0 |
-| Latency p95 (ms) | 0.08 | 0.09 | -0.010 |
+| Latency p50 (ms) | 1.16 | 0.05 | +1.110 |
+| Latency p95 (ms) | 7.92 | 0.09 | +7.830 |
 | Error rate | 0 | 0 | ±0 |
 
 ### By category
@@ -41,49 +41,46 @@
 | Tag | Cases | Accuracy | Context recall |
 |---|---:|---:|---:|
 | api | 4 | 1 | 1 |
-| billing | 5 | 0.8 | 1 |
+| billing | 5 | 1 | 1 |
 | data | 4 | 1 | 1 |
 | multi-fact | 4 | 1 | 1 |
 | out-of-scope | 4 | 1 | — |
-| security | 5 | 0.8 | 1 |
+| security | 5 | 1 | 1 |
 | support | 2 | 1 | 1 |
 
-### Failed cases (2)
+### Failed cases (0)
 
-| Case | Question | Answer | Why |
-|---|---|---|---|
-| `billing-annual-discount` | What discount do annual payments get? | I don't know based on the available documentation. | refused an answerable question; missing: '15 percent\|15%'; answer similarity 0… |
-| `security-encryption-at-rest` | What encryption is used for data at rest? | I don't know based on the available documentation. | refused an answerable question; missing: 'AES-256'; answer similarity 0.02 < 0.… |
+None 🎉
 
 <details><summary>All cases</summary>
 
 | Case | ✓ | Similarity | Ctx recall | Ctx precision | Faithfulness | Latency (ms) |
 |---|:---:|---:|---:|---:|---:|---:|
-| `billing-team-price` | ✅ | 0.797 | 1 | 1 | 1 | 0.12 |
-| `billing-starter-storage` | ✅ | 0.675 | 1 | 1 | 1 | 0.08 |
-| `billing-annual-discount` | ❌ | 0.047 | 1 | 1 | — | 0.05 |
-| `billing-invoices` | ✅ | 1 | 1 | 1 | 1 | 0.06 |
-| `security-regions` | ✅ | 0.943 | 1 | 1 | 1 | 0.08 |
-| `security-incident-sla` | ✅ | 1 | 1 | 1 | 1 | 0.06 |
-| `security-encryption-at-rest` | ❌ | 0.019 | 1 | 1 | — | 0.05 |
-| `security-certifications` | ✅ | 0.984 | 1 | 1 | 1 | 0.05 |
-| `api-rate-limit` | ✅ | 1 | 1 | 1 | 1 | 0.05 |
-| `api-rate-limit-exceeded` | ✅ | 0.827 | 1 | 1 | 1 | 0.08 |
-| `api-webhook-signature` | ✅ | 0.928 | 1 | 1 | 1 | 0.04 |
-| `api-version` | ✅ | 0.886 | 1 | 1 | 1 | 0.05 |
-| `data-backup-retention` | ✅ | 0.722 | 1 | 1 | 1 | 0.04 |
-| `data-account-deletion` | ✅ | 0.916 | 1 | 1 | 1 | 0.06 |
-| `data-export` | ✅ | 0.963 | 1 | 1 | 1 | 0.04 |
-| `support-enterprise-critical` | ✅ | 1 | 1 | 1 | 1 | 0.05 |
-| `multi-plan-prices` | ✅ | 0.801 | 1 | 1 | 1 | 0.06 |
-| `multi-backups-trash` | ✅ | 0.812 | 1 | 1 | 1 | 0.05 |
-| `multi-support-tiers` | ✅ | 0.743 | 1 | 1 | 1 | 0.05 |
-| `multi-encryption-transit` | ✅ | 0.655 | 1 | 1 | 1 | 0.04 |
-| `oos-kubernetes` | ✅ | — | — | — | — | 0.03 |
-| `oos-free-trial` | ✅ | — | — | — | — | 0.03 |
-| `oos-on-premise` | ✅ | — | — | — | — | 0.03 |
-| `oos-ceo` | ✅ | — | — | — | — | 0.02 |
+| `billing-team-price` | ✅ | 0.797 | 1 | 1 | 1 | 0.39 |
+| `billing-starter-storage` | ✅ | 0.675 | 1 | 1 | 1 | 0.44 |
+| `billing-annual-discount` | ✅ | 1 | 1 | 1 | 1 | 3.76 |
+| `billing-invoices` | ✅ | 1 | 1 | 1 | 1 | 0.81 |
+| `security-regions` | ✅ | 0.943 | 1 | 1 | 1 | 4.82 |
+| `security-incident-sla` | ✅ | 1 | 1 | 1 | 1 | 2.97 |
+| `security-encryption-at-rest` | ✅ | 0.756 | 1 | 1 | 1 | 3.15 |
+| `security-certifications` | ✅ | 0.984 | 1 | 1 | 1 | 9.29 |
+| `api-rate-limit` | ✅ | 1 | 1 | 1 | 1 | 0.25 |
+| `api-rate-limit-exceeded` | ✅ | 0.827 | 1 | 1 | 1 | 7.92 |
+| `api-webhook-signature` | ✅ | 0.928 | 1 | 1 | 1 | 1.04 |
+| `api-version` | ✅ | 0.886 | 1 | 1 | 1 | 0.96 |
+| `data-backup-retention` | ✅ | 0.722 | 1 | 1 | 1 | 0.14 |
+| `data-account-deletion` | ✅ | 0.916 | 1 | 1 | 1 | 0.62 |
+| `data-export` | ✅ | 0.963 | 1 | 1 | 1 | 0.56 |
+| `support-enterprise-critical` | ✅ | 1 | 1 | 1 | 1 | 0.67 |
+| `multi-plan-prices` | ✅ | 0.801 | 1 | 1 | 1 | 1.16 |
+| `multi-backups-trash` | ✅ | 0.812 | 1 | 1 | 1 | 1.19 |
+| `multi-support-tiers` | ✅ | 0.743 | 1 | 1 | 1 | 0.97 |
+| `multi-encryption-transit` | ✅ | 0.589 | 1 | 1 | 1 | 1.58 |
+| `oos-kubernetes` | ✅ | — | — | — | — | 1.67 |
+| `oos-free-trial` | ✅ | — | — | — | — | 2.54 |
+| `oos-on-premise` | ✅ | — | — | — | — | 2.13 |
+| `oos-ceo` | ✅ | — | — | — | — | 1.76 |
 
 </details>
 
-<sub>Generated by rageval 0.1.0 at 2026-09-25T09:14:42+00:00</sub>
+<sub>Generated by rageval 0.1.0 at 2026-09-25T09:39:27+00:00</sub>

@@ -27,14 +27,14 @@ The repository ships a small RAG assistant (`app/`) and a 24-case golden set. He
 | Faithfulness (groundedness) | 1.00 | 1.00 | unchanged: every sentence is copied from the docs |
 | **Refusal accuracy (out-of-scope)** | 1.00 | **0.50** | ❌ **gate fails** |
 
-The change leaves every in-scope answer intact and makes the assistant **confidently answer questions it should decline** ("Do you support Kubernetes?" → *"Support is available by email on every plan."*). The answer is even perfectly "faithful" — copied verbatim from the documentation — just not an answer. An accuracy floor would have merged it. This is why the gate is a set of checks on **complementary** metrics, each targeting a different failure mode.
+The change leaves every in-scope answer intact and makes the assistant **confidently answer questions it should decline** ("Do you support Kubernetes?" → *"Support is available by email on every plan."*). The answer is even perfectly "faithful" — copied verbatim from the documentation — just not an answer. An accuracy floor would have merged it; the dedicated refusal metric names the actual problem. This is why the gate is a set of checks on **complementary** metrics, each targeting a different failure mode.
 
 Each degraded configuration is caught — and not always by the check you would expect:
 
 | Change | Failure mode | Caught by |
 |---|---|---|
 | `top_k=1` | retriever starved: multi-part questions lose context | **only** the regression check (accuracy 1.00 → 0.83, recall 1.00 → 0.90): still above every absolute floor |
-| `min_coverage=0.2` | guardrail loosened: answers out-of-scope questions | `min_refusal_accuracy` |
+| `min_coverage=0.2` | guardrail loosened: answers out-of-scope questions | `min_refusal_accuracy` (0.50), and the regression check (accuracy 1.00 → 0.92) |
 | `min_coverage=0.8` | over-cautious: refuses answerable questions | `min_accuracy`, `min_answer_similarity` |
 
 The first row is the lesson of improving a system: once it scores 1.00, an 0.80 floor no longer protects anything. The **baseline** is what holds the level you have reached.

@@ -2,8 +2,8 @@
   "schema_version": 1,
   "metadata": {
     "rageval_version": "0.1.0",
-    "timestamp": "2026-09-25T09:13:37+00:00",
-    "git_sha": null,
+    "timestamp": "2026-09-25T09:39:27+00:00",
+    "git_sha": "5a220bfae21ee8d4bde8caa278c58c3489474912",
     "dataset": {
       "name": "northwind-support-golden",
       "version": "1.1.0",
@@ -12,27 +12,31 @@
     },
     "system": {
       "type": "local",
+      "retrieval": "hybrid",
       "top_k": 3,
       "min_score": 1.5,
       "min_coverage": 0.5,
-      "mode": "extractive"
+      "mode": "extractive",
+      "embedding_model": "minishlab/potion-base-8M",
+      "rrf_k": 60,
+      "term_similarity": 0.6
     }
   },
   "metrics": {
     "total_cases": 24,
-    "passed_cases": 22,
-    "accuracy": 0.9167,
-    "answerable_accuracy": 0.9,
+    "passed_cases": 24,
+    "accuracy": 1.0,
+    "answerable_accuracy": 1.0,
     "refusal_accuracy": 1.0,
-    "answer_similarity": 0.7859,
-    "token_f1": 0.7699,
+    "answer_similarity": 0.8671,
+    "token_f1": 0.8506,
     "context_recall": 1.0,
     "context_precision": 1.0,
     "faithfulness": 1.0,
-    "latency_mean_ms": 0.05,
-    "latency_p50_ms": 0.05,
-    "latency_p95_ms": 0.09,
-    "latency_max_ms": 0.1,
+    "latency_mean_ms": 2.12,
+    "latency_p50_ms": 1.16,
+    "latency_p95_ms": 7.92,
+    "latency_max_ms": 9.29,
     "error_rate": 0.0
   }
 }

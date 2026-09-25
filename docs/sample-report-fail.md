@@ -1,21 +1,21 @@
 ## RAG evaluation — quality gate ❌ FAILED
 
-**21/24 cases passed** · dataset `northwind-support-golden` v1.1.0 (`f71b29bdd204`) · system `local` · commit `local`
+**22/24 cases passed** · dataset `northwind-support-golden` v1.1.0 (`f71b29bdd204`) · system `local` · commit `5a220bfa`
 
 ### Quality gate
 
 | Check | Actual | Required | Status |
 |---|---:|---:|:---:|
-| `min_accuracy` | 0.875 | >= 0.8 | ✅ |
-| `min_refusal_accuracy` | 0.25 | >= 1 | ❌ |
+| `min_accuracy` | 0.917 | >= 0.8 | ✅ |
+| `min_refusal_accuracy` | 0.5 | >= 1 | ❌ |
 | `min_context_recall` | 1 | >= 0.85 | ✅ |
 | `min_context_precision` | 1 | >= 0.8 | ✅ |
 | `min_faithfulness` | 1 | >= 0.9 | ✅ |
-| `min_answer_similarity` | 0.856 | >= 0.6 | ✅ |
-| `max_latency_p95_ms` | 0.08 | <= 500 | ✅ |
+| `min_answer_similarity` | 0.867 | >= 0.6 | ✅ |
+| `max_latency_p95_ms` | 7.58 | <= 500 | ✅ |
 | `max_error_rate` | 0 | <= 0 | ✅ |
-| `no_regression_accuracy` | 0.875 | >= 0.867 | ✅ |
-| `no_regression_answer_similarity` | 0.856 | >= 0.736 | ✅ |
+| `no_regression_accuracy` | 0.917 | >= 0.95 | ❌ |
+| `no_regression_answer_similarity` | 0.867 | >= 0.817 | ✅ |
 | `no_regression_context_recall` | 1 | >= 0.95 | ✅ |
 | `no_regression_context_precision` | 1 | >= 0.95 | ✅ |
 | `no_regression_faithfulness` | 1 | >= 0.95 | ✅ |
@@ -24,16 +24,16 @@
 
 | Metric | Value | Baseline | Δ |
 |---|---:|---:|---:|
-| Accuracy (all cases) | 0.875 | 0.917 | -0.042 |
-| Accuracy — answerable | 1 | 0.9 | +0.100 |
-| Refusal accuracy — out-of-scope | 0.25 | 1 | -0.750 |
-| Answer similarity | 0.856 | 0.786 | +0.070 |
-| Token F1 | 0.835 | 0.77 | +0.065 |
+| Accuracy (all cases) | 0.917 | 1 | -0.083 |
+| Accuracy — answerable | 1 | 1 | ±0 |
+| Refusal accuracy — out-of-scope | 0.5 | 1 | -0.500 |
+| Answer similarity | 0.867 | 0.867 | ±0 |
+| Token F1 | 0.851 | 0.851 | ±0 |
 | Context recall | 1 | 1 | ±0 |
 | Context precision | 1 | 1 | ±0 |
 | Faithfulness (groundedness) | 1 | 1 | ±0 |
-| Latency p50 (ms) | 0.05 | 0.05 | ±0 |
-| Latency p95 (ms) | 0.08 | 0.09 | -0.010 |
+| Latency p50 (ms) | 1.27 | 1.16 | +0.110 |
+| Latency p95 (ms) | 7.58 | 7.92 | -0.340 |
 | Error rate | 0 | 0 | ±0 |
 
 ### By category
@@ -44,47 +44,46 @@
 | billing | 5 | 1 | 1 |
 | data | 4 | 1 | 1 |
 | multi-fact | 4 | 1 | 1 |
-| out-of-scope | 4 | 0.25 | — |
+| out-of-scope | 4 | 0.5 | — |
 | security | 5 | 1 | 1 |
 | support | 2 | 1 | 1 |
 
-### Failed cases (3)
+### Failed cases (2)
 
 | Case | Question | Answer | Why |
 |---|---|---|---|
 | `oos-kubernetes` | Do you support Kubernetes? | Support is available by email on every plan. | expected a refusal: the answer is not in the knowledge base |
-| `oos-free-trial` | Do you offer a free trial? | Northwind Cloud offers three plans: Starter, Team and Enterprise. | expected a refusal: the answer is not in the knowledge base |
 | `oos-on-premise` | Is there an on-premise version? | The REST API is versioned and the current version is v3. | expected a refusal: the answer is not in the knowledge base |
 
 <details><summary>All cases</summary>
 
 | Case | ✓ | Similarity | Ctx recall | Ctx precision | Faithfulness | Latency (ms) |
 |---|:---:|---:|---:|---:|---:|---:|
-| `billing-team-price` | ✅ | 0.797 | 1 | 1 | 1 | 0.12 |
-| `billing-starter-storage` | ✅ | 0.675 | 1 | 1 | 1 | 0.08 |
-| `billing-annual-discount` | ✅ | 0.706 | 1 | 1 | 1 | 0.06 |
-| `billing-invoices` | ✅ | 1 | 1 | 1 | 1 | 0.07 |
-| `security-regions` | ✅ | 0.943 | 1 | 1 | 1 | 0.06 |
-| `security-incident-sla` | ✅ | 1 | 1 | 1 | 1 | 0.05 |
-| `security-encryption-at-rest` | ✅ | 0.756 | 1 | 1 | 1 | 0.05 |
-| `security-certifications` | ✅ | 0.984 | 1 | 1 | 1 | 0.05 |
-| `api-rate-limit` | ✅ | 1 | 1 | 1 | 1 | 0.04 |
-| `api-rate-limit-exceeded` | ✅ | 0.827 | 1 | 1 | 1 | 0.07 |
-| `api-webhook-signature` | ✅ | 0.928 | 1 | 1 | 1 | 0.04 |
-| `api-version` | ✅ | 0.886 | 1 | 1 | 1 | 0.05 |
-| `data-backup-retention` | ✅ | 0.722 | 1 | 1 | 1 | 0.04 |
-| `data-account-deletion` | ✅ | 0.916 | 1 | 1 | 1 | 0.06 |
-| `data-export` | ✅ | 0.963 | 1 | 1 | 1 | 0.05 |
-| `support-enterprise-critical` | ✅ | 1 | 1 | 1 | 1 | 0.05 |
-| `multi-plan-prices` | ✅ | 0.801 | 1 | 1 | 1 | 0.05 |
-| `multi-backups-trash` | ✅ | 0.812 | 1 | 1 | 1 | 0.05 |
-| `multi-support-tiers` | ✅ | 0.743 | 1 | 1 | 1 | 0.05 |
-| `multi-encryption-transit` | ✅ | 0.655 | 1 | 1 | 1 | 0.05 |
-| `oos-kubernetes` | ❌ | — | — | — | — | 0.03 |
-| `oos-free-trial` | ❌ | — | — | — | — | 0.03 |
-| `oos-on-premise` | ❌ | — | — | — | — | 0.03 |
-| `oos-ceo` | ✅ | — | — | — | — | 0.02 |
+| `billing-team-price` | ✅ | 0.797 | 1 | 1 | 1 | 0.31 |
+| `billing-starter-storage` | ✅ | 0.675 | 1 | 1 | 1 | 0.19 |
+| `billing-annual-discount` | ✅ | 1 | 1 | 1 | 1 | 3.73 |
+| `billing-invoices` | ✅ | 1 | 1 | 1 | 1 | 0.44 |
+| `security-regions` | ✅ | 0.943 | 1 | 1 | 1 | 4.06 |
+| `security-incident-sla` | ✅ | 1 | 1 | 1 | 1 | 2.21 |
+| `security-encryption-at-rest` | ✅ | 0.756 | 1 | 1 | 1 | 3.18 |
+| `security-certifications` | ✅ | 0.984 | 1 | 1 | 1 | 8.96 |
+| `api-rate-limit` | ✅ | 1 | 1 | 1 | 1 | 1.27 |
+| `api-rate-limit-exceeded` | ✅ | 0.827 | 1 | 1 | 1 | 7.58 |
+| `api-webhook-signature` | ✅ | 0.928 | 1 | 1 | 1 | 1.23 |
+| `api-version` | ✅ | 0.886 | 1 | 1 | 1 | 0.32 |
+| `data-backup-retention` | ✅ | 0.722 | 1 | 1 | 1 | 0.65 |
+| `data-account-deletion` | ✅ | 0.916 | 1 | 1 | 1 | 1.19 |
+| `data-export` | ✅ | 0.963 | 1 | 1 | 1 | 0.17 |
+| `support-enterprise-critical` | ✅ | 1 | 1 | 1 | 1 | 1.09 |
+| `multi-plan-prices` | ✅ | 0.801 | 1 | 1 | 1 | 1.55 |
+| `multi-backups-trash` | ✅ | 0.812 | 1 | 1 | 1 | 1.34 |
+| `multi-support-tiers` | ✅ | 0.743 | 1 | 1 | 1 | 0.71 |
+| `multi-encryption-transit` | ✅ | 0.589 | 1 | 1 | 1 | 3.72 |
+| `oos-kubernetes` | ❌ | — | — | — | — | 2.07 |
+| `oos-free-trial` | ✅ | — | — | — | — | 2.93 |
+| `oos-on-premise` | ❌ | — | — | — | — | 1.14 |
+| `oos-ceo` | ✅ | — | — | — | — | 2.09 |
 
 </details>
 
-<sub>Generated by rageval 0.1.0 at 2026-09-25T09:14:42+00:00</sub>
+<sub>Generated by rageval 0.1.0 at 2026-09-25T09:39:27+00:00</sub>
