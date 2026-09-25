@@ -3,7 +3,7 @@
 
 [retrieval]
 knowledge_base = "knowledge_base"
-top_k = 3            # number of chunks handed to the generator
+top_k = 1            # number of chunks handed to the generator
 min_score = 1.5      # below this BM25 score the assistant refuses to answer
 min_coverage = 0.5   # share of the question (IDF-weighted) the best chunk must cover
 
