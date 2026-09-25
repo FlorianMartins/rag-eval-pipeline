@@ -19,6 +19,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+# Paths in the config (knowledge base, prompt) are relative to the repository root.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 REFUSAL = "I don't know based on the available documentation."
 
 _STOPWORDS = frozenset(
@@ -97,7 +100,7 @@ def load_chunks(directory: Path) -> list[Chunk]:
 
 class RAGApp:
     def __init__(self, config_path: str | Path = "app/config.toml", **overrides: Any) -> None:
-        self.root = Path(config_path).resolve().parent.parent
+        self.root = REPO_ROOT
         with open(config_path, "rb") as fh:
             cfg = tomllib.load(fh)
         self.top_k = int(overrides.get("top_k", cfg["retrieval"]["top_k"]))

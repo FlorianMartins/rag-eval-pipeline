@@ -91,7 +91,7 @@ rag-eval-pipeline/
 │   ├── gate.py                 #   thresholds + regression checks → pass/fail
 │   ├── report.py               #   JSON + Markdown reports
 │   └── cli.py                  #   `rageval run` / `rageval baseline`, exit-code contract
-├── tests/                      # 45 tests: metrics, gate, runner, CLI end-to-end, HTTP
+├── tests/                      # 44 tests: metrics, gate, runner, CLI end-to-end, HTTP
 ├── docs/                       # sample reports
 ├── .github/workflows/eval.yml  # CI: tests → quality gate → service gate
 ├── Dockerfile · Makefile · pyproject.toml
@@ -161,7 +161,7 @@ git clone https://github.com/FlorianMartins/rag-eval-pipeline.git
 cd rag-eval-pipeline
 make install            # venv + editable install (or: pip install -e '.[dev]')
 make eval               # run the golden set + quality gate  → reports/report.{json,md}
-make test               # lint + 45 tests
+make test               # lint + 44 tests
 ```
 
 See the gate fail on purpose:
@@ -278,7 +278,7 @@ The loader validates the file and fails with exit code 2 on missing fields, dupl
 
 Design points:
 
-- **The harness is tested before its verdict is trusted** — the gate job `needs: test`.
+- **The harness is tested before its verdict is trusted** — the gate job `needs: test`. The harness tests run against a *pinned* copy of the app config (`tests/fixtures/`), so tuning the app never breaks them: judging the live app is the gate's job alone.
 - **Report first, fail last**: the eval step records the exit code, the report is uploaded and commented, and only then does the final step fail the job — a red build always comes with its explanation.
 - **Sticky PR comment** (updated in place, not one per push); skipped on fork PRs whose token is read-only, where the job summary still shows the report.
 - **Least privilege**: `contents: read` globally, `pull-requests: write` only on the job that comments. LLM credentials come from repository secrets/variables and are only needed in LLM mode.

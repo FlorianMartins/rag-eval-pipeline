@@ -1,0 +1,17 @@
+# Pinned copy of app/config.toml used by the harness tests.
+# The tests check the *harness*, so they must not break when the app under test is tuned:
+# judging the live app/config.toml is the job of the quality gate, not of the unit tests.
+
+[retrieval]
+knowledge_base = "knowledge_base"
+top_k = 3            # number of chunks handed to the generator
+min_score = 1.5      # below this BM25 score the assistant refuses to answer
+min_coverage = 0.5   # share of the question (IDF-weighted) the best chunk must cover
+
+[generation]
+# "extractive" runs fully offline and deterministically (default, used in CI).
+# "openai_compatible" calls any OpenAI-compatible endpoint (OpenAI, vLLM, Ollama, LiteLLM...)
+# configured with LLM_BASE_URL / LLM_API_KEY / LLM_MODEL.
+mode = "extractive"
+prompt_template = "app/prompts/answer.txt"
+temperature = 0.0

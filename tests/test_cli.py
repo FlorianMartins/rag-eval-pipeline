@@ -10,9 +10,12 @@ from app.rag_app import RAGApp
 from app.server import make_handler
 from rageval.cli import EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK, main
 
+PINNED = "tests/fixtures/app_config.toml"
+
 
 def run(tmp_path, *extra):
-    code = main(["run", "-q", "--out", str(tmp_path), *extra])
+    pinned = [] if "--system" in extra else ["--system-opt", f"config={PINNED}"]
+    code = main(["run", "-q", "--out", str(tmp_path), *pinned, *extra])
     report = json.loads((tmp_path / "report.json").read_text()) if (tmp_path / "report.json").exists() else None
     return code, report
 
@@ -51,11 +54,6 @@ def test_regression_against_baseline(tmp_path):
     assert [c["name"] for c in report["gate"]["checks"] if not c["passed"]] == ["no_regression_accuracy"]
 
 
-def test_committed_baseline_matches_current_system(tmp_path):
-    code, _ = run(tmp_path, "--baseline", "evals/baseline.json")
-    assert code == EXIT_OK
-
-
 @pytest.mark.parametrize(
     "args", [["--system", "does-not-exist"], ["--dataset", "missing.json"], ["--tag", "no-such-tag"]]
 )
@@ -64,7 +62,7 @@ def test_configuration_errors_exit_2(tmp_path, args):
 
 
 def test_http_system_end_to_end(tmp_path):
-    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(RAGApp()))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(RAGApp(PINNED)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         url = f"http://127.0.0.1:{server.server_port}/answer"
