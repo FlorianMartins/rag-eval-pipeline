@@ -11,7 +11,16 @@ WORKDIR /workspace
 COPY pyproject.toml README.md ./
 COPY src ./src
 COPY app ./app
-RUN pip install . && useradd --create-home --uid 10001 eval
+# The embedding model is baked in at the revision pinned in app/config.toml, so the
+# container evaluates offline and every run uses byte-identical weights.
+ENV HF_HOME=/opt/hf
+RUN pip install '.[embeddings]' \
+ && python -c "import tomllib; from huggingface_hub import snapshot_download; \
+h = tomllib.load(open('app/config.toml', 'rb'))['retrieval']['hybrid']; \
+snapshot_download(h['embedding_model'], revision=h['embedding_revision'])" \
+ && chmod -R a+rX /opt/hf \
+ && useradd --create-home --uid 10001 eval
+ENV HF_HUB_OFFLINE=1
 
 COPY knowledge_base ./knowledge_base
 COPY evals ./evals

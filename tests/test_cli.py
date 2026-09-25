@@ -47,11 +47,15 @@ def test_no_fail_flag_reports_without_blocking(tmp_path):
 
 
 def test_regression_against_baseline(tmp_path):
+    # Simulate a main branch that answered better: still above every absolute floor,
+    # so only the regression check can catch the drop.
+    _, healthy = run(tmp_path / "healthy")
+    better = healthy["metrics"] | {"answer_similarity": healthy["metrics"]["answer_similarity"] + 0.1}
     baseline = tmp_path / "baseline.json"
-    baseline.write_text(json.dumps({"metrics": {"accuracy": 1.0}}))
+    baseline.write_text(json.dumps({"metrics": better}))
     code, report = run(tmp_path / "out", "--baseline", str(baseline))
     assert code == EXIT_GATE_FAILED
-    assert [c["name"] for c in report["gate"]["checks"] if not c["passed"]] == ["no_regression_accuracy"]
+    assert [c["name"] for c in report["gate"]["checks"] if not c["passed"]] == ["no_regression_answer_similarity"]
 
 
 @pytest.mark.parametrize(

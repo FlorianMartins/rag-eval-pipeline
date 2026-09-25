@@ -9,7 +9,7 @@ help: ## Show this help
 
 $(BIN)/rageval:
 	$(PY) -m venv $(VENV)
-	$(BIN)/pip install -q -e '.[dev]'
+	$(BIN)/pip install -q -e '.[dev,embeddings]'
 
 install: $(BIN)/rageval ## Create the virtualenv and install the project
 
@@ -25,6 +25,9 @@ eval-degraded: install ## Demo: starve the retriever (top_k=1) and watch the gat
 
 eval-hallucination: install ## Demo: loosen the refusal guardrail and watch the gate fail
 	$(BIN)/rageval run --system-opt min_coverage=0.2 --baseline evals/baseline.json --out reports/hallucination
+
+eval-challenge: install ## Report-only run of the challenge set (hard cases, never blocks)
+	$(BIN)/rageval run --dataset evals/challenge.json --no-fail --out reports/challenge
 
 baseline: eval ## Promote the latest (passing) report to evals/baseline.json
 	$(BIN)/rageval baseline reports/report.json
@@ -44,4 +47,4 @@ docker-eval: docker-build ## Run the evaluation in Docker, reports written to ./
 clean: ## Remove caches and generated reports
 	rm -rf reports .pytest_cache .ruff_cache .coverage **/__pycache__
 
-.PHONY: help install test eval eval-degraded eval-hallucination baseline serve eval-http docker-build docker-eval clean
+.PHONY: help install test eval eval-degraded eval-hallucination eval-challenge baseline serve eval-http docker-build docker-eval clean

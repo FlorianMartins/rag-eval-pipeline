@@ -1,0 +1,255 @@
+{
+  "name": "northwind-support-challenge",
+  "version": "1.0.0",
+  "description": "Challenge set — NOT a merge gate. Hard cases written after the thresholds were chosen: paraphrases that share few words with the documents, and near-topic questions the documents do not answer (on-topic enough to fool similarity search). It tracks progress on unsolved problems; promote a case to dataset.json once the system handles it reliably.",
+  "cases": [
+    {
+      "id": "para-yearly-billing",
+      "question": "How are customers billed if they choose yearly payment?",
+      "ground_truth": "Customers who pay annually receive a 15 percent discount.",
+      "expected_context": [
+        "Customers who pay annually receive a 15 percent discount"
+      ],
+      "assertions": {
+        "must_include": [
+          "15 percent|15%"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-encrypted-stored",
+      "question": "Is my information encrypted when stored?",
+      "ground_truth": "Yes, customer data is encrypted at rest with AES-256.",
+      "expected_context": [
+        "All customer data is encrypted at rest with AES-256"
+      ],
+      "assertions": {
+        "must_include": [
+          "AES-256"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-ciphers-network",
+      "question": "Which ciphers protect traffic over the network?",
+      "ground_truth": "Data in transit is protected with TLS 1.3.",
+      "expected_context": [
+        "encrypted in transit with TLS 1.3"
+      ],
+      "assertions": {
+        "must_include": [
+          "TLS 1.3"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-breach-notice",
+      "question": "How quickly will I hear about a breach?",
+      "ground_truth": "Security incidents are reported to affected customers within 72 hours.",
+      "expected_context": [
+        "Security incidents are reported to affected customers within 72 hours"
+      ],
+      "assertions": {
+        "must_include": [
+          "72 hours"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-servers-location",
+      "question": "Where are your servers located?",
+      "ground_truth": "Customer data is hosted in the Frankfurt and Paris regions.",
+      "expected_context": [
+        "Customer data is hosted in the Frankfurt and Paris regions"
+      ],
+      "assertions": {
+        "must_include": [
+          "Frankfurt"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-too-many-calls",
+      "question": "What happens if I send too many API calls?",
+      "ground_truth": "The API returns HTTP status 429 with a Retry-After header.",
+      "expected_context": [
+        "When the rate limit is exceeded the API returns HTTP status 429"
+      ],
+      "assertions": {
+        "must_include": [
+          "429"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-api-auth",
+      "question": "How do I authenticate against the API?",
+      "ground_truth": "Requests are authenticated with a bearer token created in the admin console.",
+      "expected_context": [
+        "Requests are authenticated with a bearer token"
+      ],
+      "assertions": {
+        "must_include": [
+          "bearer token"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-trash-recovery",
+      "question": "How long is a trashed file recoverable?",
+      "ground_truth": "Deleted files stay in the trash for 30 days.",
+      "expected_context": [
+        "Deleted files stay in the trash for 30 days"
+      ],
+      "assertions": {
+        "must_include": [
+          "30 days"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-company-idp",
+      "question": "Can I log in with my company identity provider?",
+      "ground_truth": "Yes, single sign-on is available through SAML 2.0 and OpenID Connect on Team and Enterprise.",
+      "expected_context": [
+        "Single sign-on is available through SAML 2.0 and OpenID Connect"
+      ],
+      "assertions": {
+        "must_include": [
+          "SAML|OpenID"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-status-page",
+      "question": "Is there a status page?",
+      "ground_truth": "Yes, the public status page is available at status.northwind.example.",
+      "expected_context": [
+        "The public status page is available at status.northwind.example"
+      ],
+      "assertions": {
+        "must_include": [
+          "status.northwind.example"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "para-starter-monthly",
+      "question": "What is the monthly price for Starter?",
+      "ground_truth": "The Starter plan costs 12 euros per user per month.",
+      "expected_context": [
+        "The Starter plan costs 12 euros per user per month"
+      ],
+      "assertions": {
+        "must_include": [
+          "12 euros"
+        ]
+      },
+      "tags": [
+        "paraphrase"
+      ]
+    },
+    {
+      "id": "trap-premium-plan",
+      "question": "How much is the Premium plan?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    },
+    {
+      "id": "trap-student-discount",
+      "question": "Do you offer a student discount?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    },
+    {
+      "id": "trap-us-hosting",
+      "question": "Is data hosted in the United States?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    },
+    {
+      "id": "trap-free-tier-limit",
+      "question": "What is the API rate limit for the free tier?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    },
+    {
+      "id": "trap-mobile-app",
+      "question": "Is there a mobile app?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    },
+    {
+      "id": "trap-graphql",
+      "question": "Do you support GraphQL?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    },
+    {
+      "id": "trap-employees",
+      "question": "How many employees does Northwind have?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    },
+    {
+      "id": "trap-bitcoin",
+      "question": "Can I pay with Bitcoin?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    },
+    {
+      "id": "trap-hipaa",
+      "question": "Do you offer HIPAA compliance?",
+      "answerable": false,
+      "tags": [
+        "near-topic-trap"
+      ]
+    }
+  ]
+}

@@ -19,16 +19,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-# Paths in the config (knowledge base, prompt) are relative to the repository root.
-REPO_ROOT = Path(__file__).resolve().parent.parent
-
 REFUSAL = "I don't know based on the available documentation."
 
 _STOPWORDS = frozenset(
     """a an and are as at be by can do does for from has have how i in is it its
     of on or our the their there this to was what when where which who why will
     with you your my me we after before every each any all per much many
-    compared versus vs""".split()
+    compared versus vs if they too happen happens long often get used use choose
+    offer there""".split()
 )
 _TOKEN_RE = re.compile(r"[a-z0-9]+(?:[.\-][a-z0-9]+)*")
 
@@ -100,52 +98,112 @@ def load_chunks(directory: Path) -> list[Chunk]:
 
 class RAGApp:
     def __init__(self, config_path: str | Path = "app/config.toml", **overrides: Any) -> None:
-        self.root = REPO_ROOT
+        # Paths in the config (knowledge base, prompt) are relative to the working directory,
+        # like every other path the CLI takes. Not relative to this file: once the package is
+        # installed (Docker image), __file__ points into site-packages.
+        self.root = Path.cwd()
         with open(config_path, "rb") as fh:
             cfg = tomllib.load(fh)
         self.top_k = int(overrides.get("top_k", cfg["retrieval"]["top_k"]))
         self.min_score = float(overrides.get("min_score", cfg["retrieval"]["min_score"]))
         self.min_coverage = float(overrides.get("min_coverage", cfg["retrieval"]["min_coverage"]))
+        self.retrieval_mode = overrides.get("retrieval_mode", cfg["retrieval"].get("mode", "bm25"))
         self.mode = overrides.get("mode", cfg["generation"]["mode"])
         self.temperature = float(cfg["generation"].get("temperature", 0.0))
         self.prompt_template = (self.root / cfg["generation"]["prompt_template"]).read_text(encoding="utf-8")
         self.index = BM25Index(load_chunks(self.root / cfg["retrieval"]["knowledge_base"]))
+        self.dense = None
+        if self.retrieval_mode == "hybrid":
+            from app.embeddings import DenseIndex
+
+            hybrid = cfg["retrieval"]["hybrid"]
+            self.embedding_model = hybrid["embedding_model"]
+            self.rrf_k = int(overrides.get("rrf_k", hybrid.get("rrf_k", 60)))
+            self.term_similarity = float(overrides.get("term_similarity", hybrid["term_similarity"]))
+            self.dense = DenseIndex(
+                [c.text for c in self.index.chunks], model=self.embedding_model, revision=hybrid["embedding_revision"]
+            )
+        elif self.retrieval_mode != "bm25":
+            raise ValueError(f"unknown retrieval.mode {self.retrieval_mode!r} (expected 'bm25' or 'hybrid')")
 
     def describe(self) -> dict[str, Any]:
-        return {
+        info = {
+            "retrieval": self.retrieval_mode,
             "top_k": self.top_k,
             "min_score": self.min_score,
             "min_coverage": self.min_coverage,
             "mode": self.mode,
         }
+        if self.dense is not None:
+            info |= {
+                "embedding_model": self.embedding_model,
+                "rrf_k": self.rrf_k,
+                "term_similarity": self.term_similarity,
+            }
+        return info
 
     # -- public contract -------------------------------------------------
     def answer(self, question: str) -> dict[str, Any]:
-        hits = self.index.search(question, self.top_k)
-        contexts = [{"text": c.text, "source": c.source, "score": round(s, 3)} for c, s in hits]
-        if not hits or hits[0][1] < self.min_score:
+        hits = self._retrieve(question)
+        contexts = [{"text": c.text, "source": c.source, "score": round(s, 4)} for c, s in hits]
+        if not hits:
+            return {"answer": REFUSAL, "contexts": contexts}
+        selected = self._select_chunks(question, [c for c, _ in hits])
+        lexical_signal = self.dense is not None or hits[0][1] >= self.min_score
+        if not lexical_signal or self._coverage(question, selected) < self.min_coverage:
+            # The documents talk about *something else*: refusing beats hallucinating.
             return {"answer": REFUSAL, "contexts": contexts}
         if self.mode == "openai_compatible":
             return {"answer": self._generate_llm(question, contexts), "contexts": contexts}
-        selected, coverage = self._select_chunks(question, hits)
-        if coverage < self.min_coverage:
-            # The documents talk about *something else*: refusing beats hallucinating.
-            return {"answer": REFUSAL, "contexts": contexts}
         return {"answer": " ".join(c.text for c in selected), "contexts": contexts}
 
+    # -- retrieval -----------------------------------------------------------
+    def _retrieve(self, question: str) -> list[tuple[Chunk, float]]:
+        bm25 = self.index.search(question, len(self.index.chunks))
+        if self.dense is None:
+            return bm25[: self.top_k]
+        sims = self.dense.similarities(question)
+        dense = sorted(zip(self.index.chunks, sims, strict=True), key=lambda x: x[1], reverse=True)
+        # Reciprocal Rank Fusion: robust to the two retrievers having incomparable score scales.
+        fused: dict[str, float] = {}
+        for ranking in (bm25, dense):
+            for rank, (chunk, _) in enumerate(ranking, start=1):
+                fused[chunk.source] = fused.get(chunk.source, 0.0) + 1.0 / (self.rrf_k + rank)
+        by_source = {c.source: c for c in self.index.chunks}
+        top = sorted(fused.items(), key=lambda x: x[1], reverse=True)[: self.top_k]
+        return [(by_source[src], score) for src, score in top]
+
+    def _coverage(self, question: str, chunks: list[Chunk]) -> float:
+        """Share of the question's IDF weight grounded in the chunks chosen as the answer.
+
+        A word is grounded if it appears in the chunks or, in hybrid mode, if a chunk word is
+        close enough in embedding space ("yearly" ~ "annually"). Words that are merely
+        *on-topic* stay ungrounded ("free tier", "student"), so on-topic questions the
+        documents do not answer are still refused. Unknown words weigh the most.
+        """
+        q = set(_tokenize(question))
+        total = sum(self.index.weight(t) for t in q) or 1.0
+        chunk_terms = {t for c in chunks for t in c.tokens}
+        covered = 0.0
+        for term in q:
+            if term in chunk_terms or (
+                self.dense is not None and self.dense.term_similarity(term, chunk_terms) >= self.term_similarity
+            ):
+                covered += self.index.weight(term)
+        return covered / total
+
     # -- generators --------------------------------------------------------
-    def _select_chunks(self, question: str, hits: list[tuple[Chunk, float]]) -> tuple[list[Chunk], float]:
+    def _select_chunks(self, question: str, chunks: list[Chunk]) -> list[Chunk]:
         """Extractive generation: greedily pick the retrieved sentences that cover the question.
 
         A second sentence is added only if it covers a significant, still-uncovered part of
         the question (multi-part questions such as "Starter *and* Team prices").
-        Returns the selected chunks and the share of the question's IDF weight they cover.
         """
         q = set(_tokenize(question))
         total = sum(self.index.weight(t) for t in q) or 1.0
         covered: set[str] = set()
         selected: list[Chunk] = []
-        candidates = [c for c, _ in hits]
+        candidates = list(chunks)
         while candidates and len(selected) < 3:
             gains = [
                 (sum(self.index.weight(t) for t in (q & set(c.tokens)) - covered) - 0.01 * rank, c)
@@ -157,7 +215,7 @@ class RAGApp:
             selected.append(chunk)
             covered |= q & set(chunk.tokens)
             candidates.remove(chunk)
-        return selected, sum(self.index.weight(t) for t in covered) / total
+        return selected
 
     def _generate_llm(self, question: str, contexts: list[dict[str, Any]]) -> str:
         base_url = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
